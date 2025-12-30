@@ -1,4 +1,4 @@
-package types
+package models
 
 type PageSection struct {
 	Type     string `json:"type"` // code or text

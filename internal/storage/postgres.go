@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
-	"oss/internal/types"
+	"oss/internal/models"
 	"time"
 
 	// Import your crawler types
@@ -23,7 +23,7 @@ func NewDB(connString string) (*DB, error) {
 	return &DB{Pool: pool}, nil
 }
 
-func (db *DB) SavePage(ctx context.Context, p types.ScrapedPage) error {
+func (db *DB) SavePage(ctx context.Context, p models.ScrapedPage) error {
 	tx, err := db.Pool.Begin(ctx)
 	if err != nil {
 		return err

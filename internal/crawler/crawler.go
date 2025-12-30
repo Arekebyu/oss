@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"oss/internal/storage"
-	"oss/internal/types"
+	"oss/internal/models"
 	"strings"
 	"time"
 
@@ -13,12 +12,16 @@ import (
 	"github.com/gocolly/colly/v2/extensions"
 )
 
-type Crawler struct {
-	Collector *colly.Collector
-	db        *storage.DB
+type Saver interface {
+	SavePage(ctx context.Context, doc models.ScrapedPage) error
 }
 
-func NewCrawler(db *storage.DB) *Crawler {
+type Crawler struct {
+	Collector *colly.Collector
+	saver     Saver
+}
+
+func NewCrawler(saver Saver) *Crawler {
 
 	col := colly.NewCollector(
 		colly.Async(true),
@@ -31,7 +34,7 @@ func NewCrawler(db *storage.DB) *Crawler {
 
 	return &Crawler{
 		Collector: col,
-		db:        db,
+		saver:     saver,
 	}
 }
 
@@ -44,12 +47,12 @@ func (crawler *Crawler) Crawl(domains []string, startURLs []string) {
 	})
 
 	crawler.Collector.OnError(func(r *colly.Response, err error) {
-		log.Printf("❌ Error visiting %s: %v", r.Request.URL, err)
+		log.Printf("error visiting %s: %v \n", r.Request.URL, err)
 	})
 
 	// heuristic searching for article, main, or generic divs
 	crawler.Collector.OnHTML("article, main, div[role='main'], .documentation", func(e *colly.HTMLElement) {
-		page := types.ScrapedPage{
+		page := models.ScrapedPage{
 
 			URL:       e.Request.URL.String(),
 			Title:     e.ChildText("h1"),
@@ -68,20 +71,21 @@ func (crawler *Crawler) Crawl(domains []string, startURLs []string) {
 				return
 			}
 
-			if tagName == "pre" {
+			switch tagName {
+			case "pre":
 				// likely a code block
-				page.Sections = append(page.Sections, types.PageSection{
+				page.Sections = append(page.Sections, models.PageSection{
 					Type:     "code",
 					Content:  text,
 					Language: "detected",
 				})
-			} else if tagName == "h2" || tagName == "h3" {
-				page.Sections = append(page.Sections, types.PageSection{
+			case "h2", "h3":
+				page.Sections = append(page.Sections, models.PageSection{
 					Type:    "text",
 					Content: "## " + text, // header in markdown
 				})
-			} else {
-				page.Sections = append(page.Sections, types.PageSection{
+			default:
+				page.Sections = append(page.Sections, models.PageSection{
 					Type:    "text",
 					Content: text,
 				})
@@ -108,14 +112,14 @@ func (crawler *Crawler) Crawl(domains []string, startURLs []string) {
 	crawler.Collector.Wait()
 }
 
-func (crawler *Crawler) savePage(p types.ScrapedPage) {
+func (crawler *Crawler) savePage(p models.ScrapedPage) {
 	ctx := context.Background()
-	err := crawler.db.SavePage(ctx, p)
+	err := crawler.saver.SavePage(ctx, p)
 	if err != nil {
-		log.Printf("failed to save page to DB :%v", err)
+		log.Printf("failed to save page to DB :%v\n", err)
 		return
 	}
-	fmt.Printf("sections saved to db: %s, (%d, sections)", p.Title, len(p.Sections))
+	fmt.Printf("sections saved to db: %s, (%d, sections)\n", p.Title, len(p.Sections))
 }
 
 // heuristic to remove signin pages

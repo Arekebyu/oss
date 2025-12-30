@@ -37,6 +37,16 @@ func main() {
 				Title:          "Numpy Reshape",
 				ContentSnippet: "Gives a new shape to an array without changing its data.",
 			},
+			{
+				Id:             "doc4",
+				Title:          "Pumpkin pie",
+				ContentSnippet: "A sweet desert, this autumn delight is sure to be welcomed on the table.",
+			},
+			{
+				Id:             "doc5",
+				Title:          "Tensorflow Reshape",
+				ContentSnippet: "Reshape a tensor.",
+			},
 		},
 	}
 

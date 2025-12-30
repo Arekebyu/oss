@@ -1,0 +1,40 @@
+{
+  "settings": {
+    "analysis": {
+      "tokenizer": {
+        "code_tokenizer": {
+          "type": "simple_pattern_split",
+          "pattern": "[ .]" 
+        }
+      },
+      "analyzer": {
+        "code_analyzer": {
+          "type": "custom",
+          "tokenizer": "whitespace",
+          "filter": [
+            "lowercase",
+            "word_delimiter_graph" 
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "title": { 
+        "type": "text", 
+        "analyzer": "standard" 
+      },
+      "content": { 
+        "type": "text", 
+        "analyzer": "standard" 
+      },
+      "code_snippets": {
+        "type": "text",
+        "analyzer": "code_analyzer",
+        "search_analyzer": "standard"
+      },
+      "url": { "type": "keyword" }
+    }
+  }
+}
