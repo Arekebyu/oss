@@ -35,4 +35,4 @@ services:
 
 volumes:
   postgres_data:
-  es_data
+  es_data:

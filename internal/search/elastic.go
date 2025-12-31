@@ -98,3 +98,57 @@ func (c *Client) SavePage(ctx context.Context, p models.ScrapedPage) error {
 
 	return nil
 }
+
+func (c *Client) Search(ctx context.Context, query string) ([]models.ScrapedPage, error) {
+	searchQuery := map[string]interface{}{
+		"size": 50,
+		"query": map[string]interface{}{
+			"multi_match": map[string]interface{}{
+				"query":     query,
+				"fields":    []string{"title^3", "code_snippets^2", "content"},
+				"fuzziness": "AUTO",
+			},
+		},
+	}
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(searchQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.es.Search(
+		c.es.Search.WithContext(ctx),
+		c.es.Search.WithIndex("pages"),
+		c.es.Search.WithBody(&buf),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.IsError() {
+		return nil, fmt.Errorf("search error %s", res)
+	}
+
+	var r map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&r)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []models.ScrapedPage
+	hits := r["hits"].(map[string]interface{})["hits"].([]interface{})
+
+	for _, hit := range hits {
+		source := hit.(map[string]interface{})["_source"].(map[string]interface{})
+		page := models.ScrapedPage{
+			URL:   source["url"].(string),
+			Title: source["title"].(string),
+			Sections: []models.PageSection{
+				{Content: fmt.Sprintf("%v", source["content"])[:200] + "..."},
+			},
+		}
+		results = append(results, page)
+	}
+	return results, nil
+}

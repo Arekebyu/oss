@@ -29,7 +29,7 @@ func main() {
 	// testing enviroment should probably change to os.env
 
 	// elasticsearch shenanigans
-	es, _ := search.NewClient(os.Getenv("https://localhost:9200"))
+	es, _ := search.NewClient("http://localhost:9200")
 	schema, _ := os.ReadFile("internal/search/schema.json")
 	es.InitIndex(context.Background(), schema)
 
