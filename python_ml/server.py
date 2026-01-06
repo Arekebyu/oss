@@ -1,4 +1,5 @@
 import grpc
+import os
 from concurrent import futures
 import time
 import logging
@@ -51,11 +52,13 @@ class MLServiceHandler(search_ml_pb2_grpc.MLServiceServicer):
     def GetEmbedding(self, request, context):
         return search_ml_pb2.EmbeddingResponse(vector=[0.1, 0.2, 0.3])
 
+PORT = os.environ.get("port", "50051")
+
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     search_ml_pb2_grpc.add_MLServiceServicer_to_server(MLServiceHandler(), server)
-    server.add_insecure_port('[::]:50051')
-    print("ML server started on 50051")
+    server.add_insecure_port(f'[::]:{PORT}')
+    print(f'ML server started on {PORT}')
     server.start()
     
     try:

@@ -70,3 +70,63 @@ func (db *DB) SavePage(ctx context.Context, p models.ScrapedPage) error {
 func (db *DB) Close() {
 	db.Pool.Close()
 }
+
+func (db *DB) IteratePages(ctx context.Context, processor func(models.ScrapedPage) error) error {
+	query := `
+		SELECT p.url, p.title, p.crawled_at, p.content, p.section_type
+		FROM pages p
+		LEFT JOIN sections s ON p.id = s.page.id
+		ORDER by p.id, sort_order;
+	`
+
+	rows, err := db.Pool.Query(ctx, query)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var currentPage *models.ScrapedPage
+
+	for rows.Next() {
+		var url, title, content, sectionType string
+		var crawledAt time.Time
+
+		err := rows.Scan(&url, &title, &content, &sectionType, &crawledAt)
+		if err != nil {
+			return err
+		}
+
+		if currentPage != nil && currentPage.URL != url {
+			err = processor(*currentPage)
+			if err != nil {
+				return err
+			}
+			currentPage = nil
+		}
+
+		if currentPage == nil {
+			currentPage = &models.ScrapedPage{
+				URL:       url,
+				Title:     title,
+				CrawledAt: crawledAt.Format(time.RFC3339),
+				Sections:  []models.PageSection{},
+			}
+		}
+
+		if content != "" {
+			currentPage.Sections = append(currentPage.Sections, models.PageSection{
+				Type:    sectionType,
+				Content: content,
+			})
+		}
+	}
+	
+	if currentPage != nil {
+		err := processor(*currentPage)
+		if err != nil {
+			return err
+		}
+	}
+	return rows.Err()
+
+}

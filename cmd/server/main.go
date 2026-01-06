@@ -3,8 +3,10 @@ package main
 import (
 	"log"
 	"oss/internal/api"
+	"oss/internal/config"
 	"oss/internal/search"
 	pb "oss/pb"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
@@ -12,16 +14,23 @@ import (
 )
 
 func main() {
+	cfg := config.LoadConfig()
 	// connect to python
-	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("python service did not connect %v", err)
+	var pyML *grpc.ClientConn
+	var err error
+	for i := 0; i < 10; i++ {
+		pyML, err = grpc.NewClient(cfg.MLServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err == nil {
+			break
+		}
+		log.Printf("Waiting for DB, attempt %d", (i+1))
+		time.Sleep(5 * time.Second)
 	}
-	defer conn.Close()
-	MLClient := pb.NewMLServiceClient(conn)
+	MLClient := pb.NewMLServiceClient(pyML)
+	defer pyML.Close()
 
 	// connect to elasticsearch
-	es, err := search.NewClient("http://localhost:9200")
+	es, err := search.NewClient(cfg.ElasticsearchURL)
 	if err != nil {
 		log.Fatalf("elasticsearch could not connect %v", err)
 	}
@@ -41,8 +50,8 @@ func main() {
 
 	r.GET("search", handler.HandleSearch)
 
-	log.Println("server running on https://localhost:8080")
-	err = r.Run(":8080")
+	log.Printf("server running on port %s\n", cfg.Port)
+	err = r.Run(":" + cfg.Port)
 	if err != nil {
 		log.Fatal(err)
 	}

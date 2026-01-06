@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"oss/internal/config"
 	"oss/internal/crawler"
 	"oss/internal/models"
 	"oss/internal/search"
@@ -26,16 +27,14 @@ func (ds *DualSaver) SavePage(ctx context.Context, p models.ScrapedPage) error {
 }
 
 func main() {
-	// testing enviroment should probably change to os.env
-
+	cfg := config.LoadConfig()
 	// elasticsearch shenanigans
-	es, _ := search.NewClient("http://localhost:9200")
+	es, _ := search.NewClient(cfg.ElasticsearchURL)
 	schema, _ := os.ReadFile("internal/search/schema.json")
 	es.InitIndex(context.Background(), schema)
 
 	// postgres db init
-	connString := "postgres://admin:secretpassword@localhost:5432/search_engine"
-	db, err := storage.NewDB(connString)
+	db, err := storage.NewDB(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Error connecting to database: %v\n", err)
 	}
@@ -48,9 +47,8 @@ func main() {
 
 	crawler := crawler.NewCrawler(&saver)
 
-	domains := []string{"pytorch.org", "go.dev"}
+	domains := []string{"crates.io", "docs.rs", "docs.rust.lang.org", "rust-lang.org"}
 	startURLs := []string{
-		"https://pytorch.org/docs/stable/tensors.html",
 		"https://go.dev/doc/tutorial/getting-started",
 	}
 

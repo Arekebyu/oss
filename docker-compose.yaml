@@ -1,37 +1,61 @@
 services:
   db:
     image: postgres:15-alpine
-    container_name: search_engine_db
+    container_name: search_db
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: secretpassword
       POSTGRES_DB: search_engine
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: search_engine_es
+    container_name: search_es
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false # enable for production
+      - xpack.security.enabled=false
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ports:
-      - "9200:9200"
     volumes:
       - es_data:/usr/share/elasticsearch/data
 
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.0
-    container_name: search_engine_kibana
+  python-ml:
+    build:
+      context: .
+      dockerfile: Dockerfile.ml
+    container_name: search_ml
     environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    ports:
-      - "5601:5601"
+      - PORT=50051
     depends_on:
+      - db
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: search_backend
+    environment:
+      - DATABASE_URL=postgres://admin:secretpassword@db:5432/search_engine
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ML_SERVICE_ADDR=python-ml:50051
+      - PORT=8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
       - elasticsearch
+      - python-ml
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: search_frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

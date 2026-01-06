@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"oss/internal/config"
 	pb "oss/pb"
 	"time"
 
@@ -12,7 +13,8 @@ import (
 )
 
 func main() {
-	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	cfg := config.LoadConfig()
+	conn, err := grpc.NewClient(cfg.MLServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect %v", err)
 	}
