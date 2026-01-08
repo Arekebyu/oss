@@ -28,13 +28,13 @@ jobs:
       - name: Build Backend Image
         run: docker build -t search-backend -f Dockerfile.backend .
       - name: Build Python Image
-        run: docker build -t search-ml -f Dockerfile.python .
+        run: docker build -t search-ml -f Dockerfile.ml .
   integration-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Startup Stack
-        run: docker-compose up -d
+        run: docker compose up -d
       - name: Check Health
         run: |
           sleep 30
