@@ -2,8 +2,10 @@ FROM golang:1.25-alpine AS builder
 WORKDIR /app
 COPY . .
 RUN go build -o main ./cmd/server/main.go
+RUN go build -o crawler ./cmd/crawler/main.go
+RUN go build -o sync_db ./cmd/sync_store/main.go
 FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /app/main .
+COPY --from=builder /app/main /app/crawler /app/sync_db ./
 EXPOSE 8080
 CMD ["./main"]

@@ -37,5 +37,5 @@ jobs:
         run: docker compose up -d
       - name: Check Health
         run: |
-          sleep 30
+          sleep 60
           curl -f http://localhost:8080/search?q=test || exit 1

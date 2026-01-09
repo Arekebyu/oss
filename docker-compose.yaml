@@ -1,11 +1,10 @@
 services:
   db:
     image: postgres:15-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.db
     container_name: search_db
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: secretpassword
-      POSTGRES_DB: search_engine
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

@@ -47,12 +47,14 @@ func main() {
 
 	crawler := crawler.NewCrawler(&saver)
 
-	domains := []string{"crates.io", "docs.rs", "docs.rust.lang.org", "rust-lang.org"}
+	domains := []string{"pytorch.org", "docs.pytorch.org"}
 	startURLs := []string{
-		"https://go.dev/doc/tutorial/getting-started",
+		"https://pytorch.org/docs/stable/index.html",
 	}
+	log.Printf("Beginning crawl on urls %v...\n", startURLs)
 
 	crawler.Collector.AllowedDomains = domains
 
 	crawler.Crawl(domains, startURLs)
+	log.Printf("Stopping crawl...\n")
 }

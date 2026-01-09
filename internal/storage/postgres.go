@@ -73,10 +73,10 @@ func (db *DB) Close() {
 
 func (db *DB) IteratePages(ctx context.Context, processor func(models.ScrapedPage) error) error {
 	query := `
-		SELECT p.url, p.title, p.crawled_at, p.content, p.section_type
+	 	SELECT p.url, p.title, p.crawled_at, s.content, s.section_type
 		FROM pages p
-		LEFT JOIN sections s ON p.id = s.page.id
-		ORDER by p.id, sort_order;
+		LEFT JOIN sections s ON p.id = s.page_id
+		ORDER BY p.id, s.sort_order; 
 	`
 
 	rows, err := db.Pool.Query(ctx, query)
@@ -91,7 +91,7 @@ func (db *DB) IteratePages(ctx context.Context, processor func(models.ScrapedPag
 		var url, title, content, sectionType string
 		var crawledAt time.Time
 
-		err := rows.Scan(&url, &title, &content, &sectionType, &crawledAt)
+		err := rows.Scan(&url, &title, &crawledAt, &content, &sectionType)
 		if err != nil {
 			return err
 		}
@@ -120,7 +120,7 @@ func (db *DB) IteratePages(ctx context.Context, processor func(models.ScrapedPag
 			})
 		}
 	}
-	
+
 	if currentPage != nil {
 		err := processor(*currentPage)
 		if err != nil {
